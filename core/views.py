@@ -10,9 +10,13 @@ from .models import Category, CategoryGroup, Waste
 from .serializers import (
     CategoryGroupSerializer,
     CategorySerializer,
+    CreateCategorySerializer,
     CreateWasteSerializer,
-    DeleteWasteSerializer, LogInSerializer,
+    DeleteCategorySerializer,
+    DeleteWasteSerializer,
+    LogInSerializer,
     SignUpSerializer,
+    UpdateCategorySerializer,
     UpdateWasteSerializer,
     WasteSerializer,
 )
@@ -66,7 +70,7 @@ class CategoryGroupView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
 
-class CategoryView(generics.ListAPIView):
+class CategoryView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -75,6 +79,51 @@ class CategoryView(generics.ListAPIView):
         return Category.objects.filter(
             user=self.request.user,
         ).select_related("category_group")
+
+    @swagger_auto_schema(request_body=CreateCategorySerializer)
+    def post(self, request, *args, **kwargs):
+        serializer = CreateCategorySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.validated_data["user"] = self.request.user
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @swagger_auto_schema(request_body=UpdateCategorySerializer)
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+
+        try:
+            instance = Category.objects.get(id=request.data.get("id"), user=self.request.user)
+        except Category.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UpdateCategorySerializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            category_group_id = serializer.validated_data.get("category_group_id")
+            category_group_id is not None and CategoryGroup.objects.get(id=category_group_id)
+        except CategoryGroup.DoesNotExist:
+            return Response("Category group not found", status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.validated_data["user"] = self.request.user
+        self.perform_update(serializer)
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    @swagger_auto_schema(request_body=DeleteCategorySerializer)
+    def delete(self, request, *args, **kwargs):
+        try:
+            instance = Category.objects.get(id=request.data.get("id"), user=self.request.user)
+        except Category.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class WasteView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.ListCreateAPIView):
@@ -109,7 +158,7 @@ class WasteView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.List
 
         try:
             category_id = serializer.validated_data.get("category_id")
-            category_id and Category.objects.get(id=category_id, user=self.request.user)
+            category_id is not None and Category.objects.get(id=category_id, user=self.request.user)
         except Category.DoesNotExist:
             return Response("Category not found", status=status.HTTP_400_BAD_REQUEST)
 
@@ -117,8 +166,6 @@ class WasteView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.List
         self.perform_update(serializer)
 
         if getattr(instance, "_prefetched_objects_cache", None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
 
         return Response(serializer.data)

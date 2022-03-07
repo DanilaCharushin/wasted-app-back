@@ -42,6 +42,38 @@ class CategorySerializer(serializers.ModelSerializer):
         exclude = ("user",)
 
 
+class CreateCategorySerializer(serializers.ModelSerializer):
+    category_group_id = serializers.IntegerField(required=True)
+
+    class Meta:
+        model = Category
+        exclude = ("user", "category_group")
+
+
+class UpdateCategorySerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=True)
+    category_group_id = serializers.IntegerField(required=False)
+    name = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        attrs.pop("id")
+        if not attrs:
+            raise serializers.ValidationError("Any of 'category_group_id' or 'name' required")
+        return attrs
+
+    class Meta:
+        model = Category
+        exclude = ("user", "category_group")
+
+
+class DeleteCategorySerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=True)
+
+    class Meta:
+        model = Category
+        fields = ("id",)
+
+
 class WasteSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=False, read_only=True)
 
