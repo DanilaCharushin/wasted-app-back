@@ -6,9 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
 from .models import Category, CategoryGroup
-from .serializers import (
-    CategorySerializer, LogInSerializer, SignUpSerializer, CategoryGroupSerializer
-)
+from .serializers import (CategoryGroupSerializer, CategorySerializer, LogInSerializer, SignUpSerializer)
 
 
 class BearerTokenAuthentication(TokenAuthentication):
@@ -26,9 +24,9 @@ class SignUpView(generics.CreateAPIView):
         headers = self.get_success_headers(serializer.data)
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
-            {"token": token.key, "username": user.username, "first_name": user.first_name},
+            {"token": token.key, "username": user.username},
             status=status.HTTP_201_CREATED,
-            headers=headers
+            headers=headers,
         )
 
 
@@ -37,15 +35,15 @@ class LoginView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        username = request.data.get("username", None)
+        username = request.data.get("email", None)
         password = request.data.get("password", None)
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
                 token, _ = Token.objects.get_or_create(user=user)
                 return Response(
-                    {"token": token.key, "username": username, "first_name": user.first_name},
-                    status=status.HTTP_200_OK
+                    {"token": token.key, "username": username},
+                    status=status.HTTP_200_OK,
                 )
             else:
                 return Response(status=status.HTTP_403_FORBIDDEN)

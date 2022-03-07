@@ -8,23 +8,23 @@ class SignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     def create(self, validated_data):
+        email = validated_data["email"]
         user = User.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data["email"],
+            username=email,
+            email=email,
             password=validated_data["password"],
-            first_name=validated_data["first_name"],
         )
         return user
 
     class Meta:
         model = User
-        fields = ["username", "email", "password", "first_name"]
+        fields = ["email", "password"]
 
 
 class LogInSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username", "email", "password"]
+        fields = ["email", "password"]
 
 
 class CategorySerializer(serializers.ModelSerializer):
