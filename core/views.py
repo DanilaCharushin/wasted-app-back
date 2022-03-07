@@ -86,7 +86,14 @@ class CategoryView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.L
         serializer = CreateCategorySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.validated_data["user"] = self.request.user
-        self.perform_create(serializer)
+
+        try:
+            CategoryGroup.objects.get(id=serializer.validated_data["category_group_id"])
+        except CategoryGroup.DoesNotExist:
+            return Response("Category group not found", status=status.HTTP_404_NOT_FOUND)
+        else:
+            self.perform_create(serializer)
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
@@ -142,7 +149,14 @@ class WasteView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.List
         serializer = CreateWasteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.validated_data["user"] = self.request.user
-        self.perform_create(serializer)
+
+        try:
+            Category.objects.get(id=serializer.validated_data["category_id"], user=self.request.user)
+        except Category.DoesNotExist:
+            return Response("Category not found", status=status.HTTP_404_NOT_FOUND)
+        else:
+            self.perform_create(serializer)
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
