@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, mixins, permissions, status
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import BasicAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
@@ -74,6 +74,7 @@ class CategoryView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.L
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [BasicAuthentication, BearerTokenAuthentication]
 
     def get_queryset(self):
         return Category.objects.filter(
@@ -129,6 +130,7 @@ class CategoryView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.L
 class WasteView(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.ListCreateAPIView):
     serializer_class = WasteSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [BasicAuthentication, BearerTokenAuthentication]
 
     def get_queryset(self):
         return Waste.objects.filter(
