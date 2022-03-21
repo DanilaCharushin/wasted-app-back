@@ -34,6 +34,11 @@ class SignUpView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user: User = serializer.save()
+        default_categories = [
+            Category.objects.create(name=category_group.name, category_group=category_group, user=user)
+            for category_group in CategoryGroup.objects.all()
+        ]
+        user.category_set.set(default_categories)
         headers = self.get_success_headers(serializer.data)
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
